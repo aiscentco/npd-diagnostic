@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPD Diagnostic · AIscent Co.</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --pink: #FF2D7B;
+  --petal: #FFE8F2;
+  --black: #1A1A1A;
+  --bloom: #FF85B3;
+  --white: #ffffff;
+  --off: #fafafa;
+  --line: #F0D8E8;
+  --muted: #999;
+  --radius: 3px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--white); color: var(--black); min-height: 100vh; }
+h1,h2,h3,.georgia { font-family: 'Playfair Display', serif; }
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* HEADER */
+.app-header {
+  padding: 16px 32px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--white); position: sticky; top: 0; z-index: 10;
+}
+.logo { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 900; display: flex; align-items: center; gap: 2px; }
+.logo-ai { color: var(--black); }
+.logo-scent { color: var(--pink); }
+.logo-co { color: var(--black); font-size: 13px; font-weight: 400; margin-left: 3px; opacity: 0.5; }
+.header-meta { font-size: 12px; color: var(--muted); }
+
+/* WELCOME */
+#welcome { align-items: center; background: var(--white); }
+.welcome-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 24px; }
+.welcome-inner { max-width: 540px; width: 100%; }
+.welcome-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--pink); margin-bottom: 20px; }
+.welcome-title { font-family: 'Playfair Display', serif; font-size: clamp(28px,5vw,42px); font-weight: 900; line-height: 1.15; color: var(--black); margin-bottom: 18px; }
+.welcome-title em { font-style: italic; color: var(--pink); }
+.welcome-sub { font-size: 15px; line-height: 1.75; color: #555; font-weight: 300; margin-bottom: 12px; }
+.why-block { background: var(--pink); color: white; padding: 20px 24px; border-radius: var(--radius); margin-bottom: 36px; font-size: 14px; line-height: 1.65; }
+.why-block strong { display: block; font-family: 'Playfair Display', serif; font-size: 16px; margin-bottom: 6px; font-weight: 900; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px; }
+.form-group label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group input, .form-group select {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--line);
+  background: var(--white); font-family: 'DM Sans', sans-serif; font-size: 14px;
+  color: var(--black); border-radius: var(--radius); transition: border-color 0.2s; appearance: none;
+}
+.form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; cursor: pointer;
+}
+.form-group input:focus, .form-group select:focus { outline: none; border-color: var(--pink); }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 10px; padding: 15px 32px;
+  background: var(--pink); color: white; font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 600; border: none; border-radius: var(--radius);
+  cursor: pointer; transition: background 0.2s, transform 0.15s;
+}
+.btn-primary:hover { background: #e0256d; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+/* CHAT */
+#chat { height: 100vh; overflow: hidden; }
+.chat-header {
+  padding: 14px 24px; border-bottom: 1px solid var(--line); background: var(--white);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.chat-info { font-size: 12px; color: var(--muted); }
+.progress-wrap { display: flex; align-items: center; gap: 10px; }
+.progress-label { font-size: 11px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+.progress-track { width: 100px; height: 3px; background: var(--petal); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--pink); border-radius: 2px; transition: width 0.5s ease; width: 0%; }
+
+.chat-messages {
+  flex: 1; overflow-y: auto; padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 18px; scroll-behavior: smooth;
+}
+.chat-messages::-webkit-scrollbar { width: 3px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--bloom); border-radius: 2px; }
+
+.msg-wrap {
+  display: flex; gap: 10px; max-width: 640px;
+  animation: msgIn 0.25s ease forwards; opacity: 0; transform: translateY(6px);
+}
+@keyframes msgIn { to { opacity: 1; transform: translateY(0); } }
+.msg-wrap.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg-wrap.ai { align-self: flex-start; }
+
+.msg-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; margin-top: 2px;
+}
+.msg-wrap.ai .msg-avatar { background: var(--pink); color: white; font-family: 'Playfair Display', serif; }
+.msg-wrap.user .msg-avatar { background: var(--petal); color: var(--pink); border: 1px solid var(--line); }
+
+.msg-bubble { padding: 12px 16px; font-size: 14px; line-height: 1.7; max-width: 520px; }
+.msg-wrap.ai .msg-bubble { background: var(--petal); color: var(--black); border-radius: 2px 12px 12px 12px; }
+.msg-wrap.user .msg-bubble { background: var(--black); color: white; border-radius: 12px 2px 12px 12px; }
+
+/* MC pills — end of conversation */
+.mc-section {
+  align-self: flex-start; max-width: 540px;
+  animation: msgIn 0.25s ease forwards; opacity: 0; transform: translateY(6px);
+}
+.mc-section-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--pink); margin-bottom: 10px;
+  padding-left: 4px;
+}
+.mc-question { font-size: 14px; color: var(--black); margin-bottom: 10px; font-weight: 500; padding-left: 4px; }
+.mc-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.mc-pill {
+  padding: 8px 16px; border: 1.5px solid var(--pink);
+  background: white; color: var(--pink);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  border-radius: 20px; cursor: pointer; transition: all 0.15s;
+}
+.mc-pill:hover { background: var(--pink); color: white; }
+.mc-pill.chosen { background: var(--pink); color: white; pointer-events: none; }
+.mc-pill.disabled { opacity: 0.3; pointer-events: none; }
+
+/* Typing */
+.typing-indicator { display: flex; gap: 4px; align-items: center; padding: 14px 16px; }
+.typing-dot { width: 5px; height: 5px; background: var(--bloom); border-radius: 50%; animation: typePulse 1.2s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typePulse { 0%,60%,100%{opacity:0.3;transform:scale(1)} 30%{opacity:1;transform:scale(1.25)} }
+
+/* Input */
+.chat-input-area { padding: 16px 24px; border-top: 1px solid var(--line); background: var(--white); flex-shrink: 0; }
+.chat-input-row { display: flex; gap: 10px; max-width: 640px; margin: 0 auto; }
+.chat-input {
+  flex: 1; padding: 13px 16px; border: 1.5px solid var(--line); background: var(--off);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--black);
+  resize: none; min-height: 48px; max-height: 130px; border-radius: var(--radius);
+  transition: border-color 0.2s; line-height: 1.5;
+}
+.chat-input:focus { outline: none; border-color: var(--pink); background: white; }
+.chat-input::placeholder { color: #bbb; }
+.send-btn {
+  width: 48px; height: 48px; background: var(--pink); border: none;
+  border-radius: var(--radius); cursor: pointer; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0; transition: background 0.2s;
+}
+.send-btn:hover { background: #e0256d; }
+.send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.send-btn svg { width: 17px; height: 17px; fill: white; }
+.input-hint { font-size: 11px; color: #ccc; text-align: center; margin-top: 8px; }
+
+/* THANK YOU */
+#thankyou { align-items: center; justify-content: center; background: var(--white); }
+.ty-inner { max-width: 480px; text-align: center; padding: 40px 24px; margin: auto; }
+.ty-icon { width: 64px; height: 64px; background: var(--petal); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 28px; font-size: 26px; }
+.ty-title { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 900; color: var(--black); margin-bottom: 16px; line-height: 1.2; }
+.ty-message { font-size: 15px; line-height: 1.75; color: #555; font-weight: 300; margin-bottom: 24px; }
+.ty-note { background: var(--petal); border-left: 3px solid var(--pink); padding: 16px 20px; font-size: 13px; line-height: 1.6; color: var(--black); text-align: left; border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 36px; }
+
+/* CONSULTANT TRIGGER */
+.consultant-trigger {
+  position: fixed; bottom: 18px; right: 20px;
+  font-size: 11px; color: #e8d0dc; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-weight: 500;
+  letter-spacing: 0.08em; transition: color 0.2s; z-index: 200;
+  user-select: none;
+}
+.consultant-trigger:hover { color: var(--pink); }
+
+/* REPORT */
+#report { align-items: center; background: var(--off); padding: 40px 24px; }
+.report-inner { max-width: 800px; width: 100%; }
+.report-header { background: var(--pink); color: white; padding: 32px 36px; border-radius: var(--radius); margin-bottom: 28px; }
+.report-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.8; margin-bottom: 10px; }
+.report-title { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 900; line-height: 1.2; margin-bottom: 6px; }
+.report-meta { font-size: 13px; opacity: 0.75; }
+.report-sessions { font-size: 12px; opacity: 0.6; margin-top: 4px; }
+
+.report-loading { text-align: center; padding: 60px 0; background: white; border-radius: var(--radius); }
+.spinner { width: 36px; height: 36px; border: 2px solid var(--line); border-top-color: var(--pink); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.report-loading p { font-size: 14px; color: var(--muted); }
+
+.report-content { display: none; }
+.report-content.visible { display: block; }
+
+.session-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.session-tab {
+  padding: 7px 16px; border: 1.5px solid var(--line); background: white;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+  color: var(--muted); border-radius: 20px; cursor: pointer; transition: all 0.15s;
+}
+.session-tab.active { border-color: var(--pink); color: var(--pink); background: var(--petal); }
+
+.report-card { background: white; border-radius: var(--radius); padding: 28px 32px; margin-bottom: 18px; border: 1px solid var(--line); }
+.report-section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--pink); margin-bottom: 14px; }
+.report-prose { font-size: 14px; line-height: 1.8; color: #333; white-space: pre-wrap; }
+
+.pain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 14px; }
+.pain-card { background: var(--petal); padding: 18px 20px; border-radius: var(--radius); border-left: 3px solid var(--pink); }
+.pain-card-fn { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pink); margin-bottom: 7px; }
+.pain-card-text { font-size: 13px; line-height: 1.6; color: var(--black); }
+
+.friction-row { display: flex; align-items: center; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+.friction-pair { font-size: 13px; font-weight: 500; min-width: 220px; color: var(--black); }
+.friction-bar-wrap { flex: 1; height: 7px; background: var(--petal); border-radius: 4px; overflow: hidden; }
+.friction-bar { height: 100%; background: var(--pink); border-radius: 4px; transition: width 1s ease; width: 0; }
+.friction-note { font-size: 12px; color: var(--muted); min-width: 46px; text-align: right; }
+
+.mc-summary-row { margin-bottom: 14px; }
+.mc-summary-fn { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.mc-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.mc-badge { background: var(--petal); border: 1px solid var(--bloom); color: var(--pink); font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 12px; }
+
+.report-actions { display: flex; gap: 12px; padding-top: 20px; }
+.btn-secondary { padding: 12px 24px; background: transparent; border: 1.5px solid var(--line); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-radius: var(--radius); transition: all 0.2s; }
+.btn-secondary:hover { border-color: var(--black); color: var(--black); }
+
+@media (max-width:600px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .form-group.full { grid-column: 1; }
+  .chat-messages { padding: 20px 16px; }
+  .chat-input-area { padding: 12px 16px; }
+  .progress-wrap { display: none; }
+  .pain-grid { grid-template-columns: 1fr; }
+  .report-card { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<span class="consultant-trigger" id="consultantTrigger">consultant view</span>
+
+<!-- WELCOME -->
+<div id="welcome" class="screen active">
+  <div class="app-header">
+    <div class="logo"><span class="logo-ai">AI</span><span class="logo-scent">scent</span><span class="logo-co">Co.</span></div>
+    <div class="header-meta">NPD Process Diagnostic</div>
+  </div>
+  <div class="welcome-body">
+    <div class="welcome-inner">
+      <div class="welcome-eyebrow">Process Intelligence · Confidential</div>
+      <h1 class="welcome-title">Your experience<br><em>shapes what comes next.</em></h1>
+      <p class="welcome-sub">This conversation is designed to understand how your NPD process really works — where things flow and where they slow down.</p>
+      <div class="why-block">
+        <strong>Why this matters</strong>
+        Most NPD teams lose weeks to friction that is hard to name — briefs that create rework, approvals that stall, handoffs that nobody owns. This diagnostic makes the invisible visible so your company can fix what is actually slowing things down. Your honest input is what makes the difference.
+      </div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Company</label>
+          <input type="text" id="companyInput" placeholder="e.g. Nordica Beauty Group" />
+        </div>
+        <div class="form-group">
+          <label>Your Function</label>
+          <select id="functionSelect">
+            <option value="">Select your area</option>
+            <option value="Marketing">Marketing / Brand</option>
+            <option value="R&D">R&D / Formulation</option>
+            <option value="Procurement">Procurement / Sourcing</option>
+            <option value="Packaging">Packaging / Design</option>
+            <option value="Regulatory">Regulatory</option>
+            <option value="Product Management">Product Management</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Level</label>
+          <select id="senioritySelect">
+            <option value="">Select level</option>
+            <option value="Senior">Senior (Manager / Director / VP)</option>
+            <option value="Mid-level">Mid-level (Specialist / Coordinator)</option>
+            <option value="Junior">Junior (Assistant / Analyst)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-primary" id="startBtn" onclick="startSession()" disabled>Start the conversation →</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div id="chat" class="screen">
+  <div class="chat-header">
+    <div class="logo"><span class="logo-ai">AI</span><span class="logo-scent">scent</span><span class="logo-co">Co.</span></div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div class="chat-info" id="chatInfo"></div>
+      <div class="progress-wrap">
+        <span class="progress-label" id="progressLabel">1 of 10</span>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-area">
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chatInput" placeholder="Share your thoughts…" rows="1"
+        onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <p class="input-hint">Enter to send · Shift+Enter for new line</p>
+  </div>
+</div>
+
+<!-- THANK YOU -->
+<div id="thankyou" class="screen">
+  <div class="app-header">
+    <div class="logo"><span class="logo-ai">AI</span><span class="logo-scent">scent</span><span class="logo-co">Co.</span></div>
+  </div>
+  <div class="ty-inner">
+    <div class="ty-icon">✓</div>
+    <h2 class="ty-title">Thank you for your time.</h2>
+    <p class="ty-message">Your input has been received and will be treated with full confidentiality.</p>
+    <div class="ty-note" id="tyNote">Your insights will help build a stronger, faster NPD process — for everyone working in it. The changes that come from this work are yours as much as anyone's.</div>
+    <p style="font-size:12px;color:#ccc;">You may close this window.</p>
+  </div>
+</div>
+
+<!-- REPORT -->
+<div id="report" class="screen">
+  <div class="report-inner">
+    <div class="report-header">
+      <div class="report-eyebrow">Consultant View · Confidential · AIscent Co.</div>
+      <h2 class="report-title" id="reportTitle">NPD Diagnostic Report</h2>
+      <p class="report-meta" id="reportMeta"></p>
+      <p class="report-sessions" id="reportSessions"></p>
+    </div>
+    <div id="sessionTabs" class="session-tabs"></div>
+    <div id="reportLoading" class="report-loading">
+      <div class="spinner"></div>
+      <p>Synthesizing session insights…</p>
+    </div>
+    <div id="reportContent" class="report-content">
+      <div class="report-card">
+        <div class="report-section-label">Quick Answers</div>
+        <div id="mcSummary"></div>
+      </div>
+      <div class="report-card">
+        <div class="report-section-label">Overview</div>
+        <div class="report-prose" id="reportOverview"></div>
+      </div>
+      <div class="report-card">
+        <div class="report-section-label">Key Pain Points by Function</div>
+        <div class="pain-grid" id="painGrid"></div>
+      </div>
+      <div class="report-card">
+        <div class="report-section-label">Approval Bottlenecks</div>
+        <div class="report-prose" id="reportApprovals"></div>
+      </div>
+      <div class="report-card">
+        <div class="report-section-label">Cross-Functional Friction Map</div>
+        <div id="frictionMap"></div>
+      </div>
+      <div class="report-card">
+        <div class="report-section-label">Brief Quality Assessment</div>
+        <div class="report-prose" id="reportBrief"></div>
+      </div>
+      <div class="report-card">
+        <div class="report-section-label">Recommended Next Steps</div>
+        <div class="report-prose" id="reportRecs"></div>
+      </div>
+      <div class="report-actions">
+        <button class="btn-primary" onclick="window.print()">Export PDF ↗</button>
+        <button class="btn-secondary" onclick="newSession()">New session</button>
+        <button class="btn-secondary" onclick="clearData()">Clear data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let S = {
+  company:'', fn:'', seniority:'',
+  messages:[], qCount:0, maxQ:10,
+  mcAnswers:{}, sessionDone:false
+};
+
+// MC questions shown at the very end
+const END_MC = [
+  {
+    text: "Which function do you feel creates the most delays in a typical launch?",
+    options: ["Marketing / Brand","R&D / Formulation","Procurement","Packaging / Design","Regulatory","Product Management"],
+    key: "most_delays"
+  }
+];
+
+// Second MC adapts based on function
+function getSecondMC(fn) {
+  if (fn === 'Marketing') {
+    return {
+      text: "When you send a brief, how complete does it feel at that moment?",
+      options: ["Very complete and locked","Mostly clear with some gaps","Still exploring some directions","Depends heavily on the project"],
+      key: "brief_quality"
+    };
+  }
+  return {
+    text: "How would you describe the briefs you typically work from?",
+    options: ["Too vague","Too rigid","Inconsistent quality","Generally clear"],
+    key: "brief_quality"
+  };
+}
+let mcStep = 0;
+
+// ── FORM ──
+['functionSelect','senioritySelect','companyInput'].forEach(id => {
+  document.getElementById(id).addEventListener(
+    id === 'companyInput' ? 'input' : 'change', checkReady
+  );
+});
+function checkReady() {
+  const ok = document.getElementById('functionSelect').value &&
+             document.getElementById('senioritySelect').value &&
+             document.getElementById('companyInput').value.trim();
+  document.getElementById('startBtn').disabled = !ok;
+}
+
+// ── STORAGE ──
+function sKey(c) { return 'npd_' + c.toLowerCase().replace(/\s+/g,'_'); }
+function saveSession(d) {
+  const k = sKey(d.company);
+  let all = [];
+  try { all = JSON.parse(localStorage.getItem(k)||'[]'); } catch(e){}
+  all.push(d);
+  localStorage.setItem(k, JSON.stringify(all));
+}
+function getSessions(c) {
+  try { return JSON.parse(localStorage.getItem(sKey(c))||'[]'); } catch(e){ return []; }
+}
+function clearData() {
+  if(confirm('Clear all data for ' + S.company + '?')) {
+    localStorage.removeItem(sKey(S.company));
+    alert('Cleared.');
+  }
+}
+
+// ── START ──
+function startSession() {
+  S.company   = document.getElementById('companyInput').value.trim();
+  S.fn        = document.getElementById('functionSelect').value;
+  S.seniority = document.getElementById('senioritySelect').value;
+  S.messages  = []; S.qCount = 0; S.mcAnswers = {}; S.sessionDone = false; S.awaitingFinalReply = false;
+  mcStep = 0;
+
+  document.getElementById('chatInfo').textContent = S.fn + ' · ' + S.seniority;
+  document.getElementById('reportTitle').textContent = 'NPD Diagnostic — ' + S.company;
+  document.getElementById('reportMeta').textContent =
+    S.fn + ' · ' + S.seniority + ' · ' +
+    new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('tyNote').textContent =
+    'Your insights will help ' + S.company +
+    ' build a stronger, faster NPD process — for everyone working in it. The changes that come from this work are yours as much as anyone\'s.';
+
+  showScreen('chat');
+  updateProgress();
+  opening();
+}
+
+// ── SCREEN ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── PROGRESS ──
+function updateProgress() {
+  const pct = Math.min((S.qCount / S.maxQ) * 100, 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent =
+    Math.min(S.qCount + 1, S.maxQ) + ' of ' + S.maxQ;
+}
+
+// ── MESSAGES ──
+function appendMsg(role, text) {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap ' + role;
+  const av = document.createElement('div');
+  av.className = 'msg-avatar';
+  av.textContent = role === 'ai' ? 'N' : S.fn.charAt(0).toUpperCase();
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+  wrap.appendChild(av); wrap.appendChild(bubble);
+  document.getElementById('chatMessages').appendChild(wrap);
+  scrollBottom();
+}
+
+function appendMCBlock(mc) {
+  const section = document.createElement('div');
+  section.className = 'mc-section';
+  section.innerHTML = '<div class="mc-question">' + mc.text + '</div>';
+  const pills = document.createElement('div');
+  pills.className = 'mc-pills';
+  mc.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-pill';
+    btn.textContent = opt;
+    btn.onclick = () => pickMC(btn, mc, opt, pills);
+    pills.appendChild(btn);
+  });
+  section.appendChild(pills);
+  document.getElementById('chatMessages').appendChild(section);
+  scrollBottom();
+}
+
+function pickMC(btn, mc, value, pills) {
+  pills.querySelectorAll('.mc-pill').forEach(b => b.classList.add('disabled'));
+  btn.classList.remove('disabled'); btn.classList.add('chosen');
+  S.mcAnswers[mc.key] = value;
+  mcStep++;
+  if (mcStep === 1) {
+    // Show second MC — adapted to function
+    setTimeout(() => appendMCBlock(getSecondMC(S.fn)), 500);
+  } else {
+    // Both MC done — show final open question
+    setTimeout(() => showFinalOpen(), 500);
+  }
+}
+
+function showFinalOpen() {
+  // Add Nova's warm closing invitation as a message
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap ai';
+  wrap.style.animation = 'msgIn 0.25s ease forwards';
+  const av = document.createElement('div');
+  av.className = 'msg-avatar'; av.textContent = 'N';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = 'Is there anything else you would like to share — something the questions did not cover, or anything you feel is important for us to understand?';
+  wrap.appendChild(av); wrap.appendChild(bubble);
+  document.getElementById('chatMessages').appendChild(wrap);
+  scrollBottom();
+
+  // Update placeholder and re-enable input for final message
+  const input = document.getElementById('chatInput');
+  input.placeholder = 'Share anything else, or press send to finish…';
+  setInput(true);
+  input.focus();
+
+  // Mark that the next send is the final one
+  S.sessionDone = true;
+}
+
+function showTyping() {
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap ai'; wrap.id = 'typing';
+  const av = document.createElement('div'); av.className = 'msg-avatar'; av.textContent = 'N';
+  const b = document.createElement('div');
+  b.className = 'msg-bubble typing-indicator';
+  b.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  wrap.appendChild(av); wrap.appendChild(b);
+  document.getElementById('chatMessages').appendChild(wrap);
+  scrollBottom();
+}
+function removeTyping() { const e = document.getElementById('typing'); if(e) e.remove(); }
+function scrollBottom() { const m = document.getElementById('chatMessages'); m.scrollTop = m.scrollHeight; }
+
+function setInput(on) {
+  document.getElementById('chatInput').disabled = !on;
+  const v = document.getElementById('chatInput').value.trim();
+  document.getElementById('sendBtn').disabled = !on || !v;
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight,130) + 'px';
+  document.getElementById('sendBtn').disabled = !el.value.trim();
+}
+function handleKeyDown(e) {
+  if (e.key==='Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!document.getElementById('sendBtn').disabled) sendMessage();
+  }
+}
+
+// ── OPENING ──
+async function opening() {
+  setInput(false); showTyping();
+  const init = '[START] Function: ' + S.fn + '. Level: ' + S.seniority +
+    '. Company: ' + S.company + '. Introduce yourself as Nova and ask your opening question.';
+  try {
+    const res = await callClaude(buildSystem(), [{role:'user',content:init}]);
+    removeTyping();
+    appendMsg('ai', res);
+    S.messages.push({role:'assistant',content:res});
+    S.qCount++; updateProgress(); setInput(true);
+    document.getElementById('chatInput').focus();
+  } catch(e) {
+    removeTyping();
+    appendMsg('ai', "Hi, I am Nova. Something went wrong. Please refresh and try again.");
+  }
+}
+
+// ── SEND ──
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text && !S.sessionDone) return;
+
+  // User answered Nova's closing open question — now show first MC
+  if (S.awaitingFinalReply) {
+    if (text) {
+      appendMsg('user', text);
+      S.messages.push({role:'user', content: text});
+    }
+    input.value = ''; input.style.height = 'auto';
+    setInput(false);
+    S.awaitingFinalReply = false;
+    setTimeout(() => appendMCBlock(END_MC[0]), 500);
+    return;
+  }
+
+  // Final open question after MC — save and close
+  if (S.sessionDone) {
+    if (text) {
+      appendMsg('user', text);
+      S.messages.push({role:'user', content:'[Final note] ' + text});
+    }
+    input.value = ''; input.style.height = 'auto';
+    setInput(false);
+    saveSession({
+      company: S.company, fn: S.fn, seniority: S.seniority,
+      mcAnswers: S.mcAnswers, messages: S.messages,
+      timestamp: new Date().toISOString()
+    });
+    showScreen('thankyou');
+    generateReport(S.company);
+    return;
+  }
+
+  appendMsg('user', text);
+  S.messages.push({role:'user',content:text});
+  input.value = ''; input.style.height = 'auto';
+  setInput(false);
+  S.qCount++; updateProgress();
+  await continueConversation();
+}
+
+async function continueConversation() {
+  const isLast = S.qCount >= S.maxQ - 1;
+  showTyping();
+  try {
+    const res = await callClaude(buildSystem(isLast), S.messages);
+    removeTyping();
+    if (res.includes('[END]') || isLast) {
+      const clean = res.replace('[END]','').trim();
+      appendMsg('ai', clean);
+      S.messages.push({role:'assistant',content:clean});
+      // Mark as ending — MC will show after user sends their reply
+      S.awaitingFinalReply = true;
+      setInput(true);
+      document.getElementById('chatInput').focus();
+    } else {
+      appendMsg('ai', res);
+      S.messages.push({role:'assistant',content:res});
+      setInput(true);
+      document.getElementById('chatInput').focus();
+    }
+  } catch(e) {
+    removeTyping();
+    appendMsg('ai', "Could you share that again? Something went wrong.");
+    setInput(true);
+  }
+}
+
+// ── SYSTEM PROMPT ──
+function buildSystem(wrapUp = false) {
+
+  const FUNCTION_CONTEXT = {
+    'Marketing': `This person CREATES the NPD brief. They do not receive it — they write it and kick off the process.
+Focus your questions on:
+1. How they build the brief — do they have consumer insight, price tier, cost target, portfolio positioning, claims, key ingredients and final look defined before sending it?
+2. How locked the brief is when it goes out — how often does it change after R&D or Procurement have already started work, and what usually triggers changes?
+3. Approval forums — ask how many forums a typical project goes through (concept approval, finance, innovation review, communication). Do not assume — let them describe their own process. If they mention three or more forums, probe each one: how long does a decision typically take, how often is the project sent back for rework, and who holds the final decision.
+4. Decision latency — when a forum has reviewed a project, how quickly does a decision follow? Have projects ever changed direction after a gate was already passed?
+5. Communication and concept approval — do claims or trend language ever get challenged late in the process, forcing rework on communication even when the product itself is done?`,
+
+    'R&D': `This person RECEIVES the brief from Marketing. They develop formulas and assess feasibility.
+Focus your questions on:
+1. Brief quality on arrival — which of the six elements are most often missing: claims, portfolio positioning, key ingredient, final look, target cost, feasibility expectation?
+2. How often they have to go back to Marketing before they can start development, and what is usually unclear.
+3. Scope changes mid-development — how often does the brief change after they have started, and what does that cost in time?
+4. Gate flexibility — can they run any development work in parallel while other approvals are pending, or does everything stop at each gate?
+5. Rework frequency — have they ever developed work that was wasted because direction changed?`,
+
+    'Procurement': `This person RECEIVES the brief and is responsible for sourcing ingredients, materials and suppliers.
+Focus your questions on:
+1. Can they start sourcing from the brief they receive, or is information missing that forces them to wait?
+2. Is the target cost realistic given the claims and ingredients specified in the brief?
+3. How often do supplier options get rejected because the brief was too specific or not specific enough?
+4. Lead times — where in the process do supplier lead times create the most pressure on the timeline?
+5. Handoff quality — how clear is the information they receive from Marketing and R&D when it reaches them?`,
+
+    'Packaging': `This person RECEIVES the brief and manages packaging development and design.
+Focus your questions on:
+1. Is the final look and format clear enough in the brief to start briefing external suppliers?
+2. How often does packaging direction change after development has started, and what causes it?
+3. Design approval cycles — how many rounds of approval does packaging typically go through, and where do delays occur?
+4. Supplier lead times for packaging components and how these interact with the overall launch timeline.
+5. How well packaging development is coordinated with formula development — do they run in parallel or sequentially?`,
+
+    'Regulatory': `This person manages compliance, claims approval and regulatory submissions.
+Focus your questions on:
+1. At what stage in the NPD process are they typically brought in — early enough to flag issues, or late when it is harder to change?
+2. How often do claims or ingredients create regulatory challenges that push back the timeline?
+3. Market-specific requirements — if they work across multiple markets, how does regulatory complexity affect the process?
+4. Approval cycles — how long do regulatory submissions typically take, and where do unexpected delays occur?
+5. Communication with Marketing on claims — are claims validated from a regulatory perspective before the brief is locked?`,
+
+    'Product Management': `This person has a cross-functional view of the full NPD pipeline. They see where projects stall and who is waiting on whom.
+Focus your questions on:
+1. Across the projects they manage, where do projects most commonly lose momentum — which stage, which function, which handoff?
+2. Brief quality from their perspective — how often do brief changes mid-development cause timeline impact, and which function is usually the source?
+3. Gate realism — how realistic are the gate timelines in practice? Which gates are most often the cause of delays?
+4. Decision latency — when senior leadership or forums are involved in approvals, how does that affect project speed?
+5. Cross-functional friction — which two functions have the most difficult working relationship in the NPD process, and what does that friction look like in practice?`
+  };
+
+  const fnContext = FUNCTION_CONTEXT[S.fn] || FUNCTION_CONTEXT['Product Management'];
+
+  return `You are Nova, a warm and experienced NPD process consultant working for AIscent Co., a boutique beauty strategy consultancy. Your philosophy is to be the oil of the engine — a facilitator that helps people, never judges them or makes them feel evaluated.
+
+RESPONDENT: ${S.fn} · ${S.seniority} · ${S.company}
+
+FUNCTION-SPECIFIC GUIDANCE:
+${fnContext}
+
+CONVERSATION RULES:
+One question per message. Two sentences maximum. Absolutely no dashes anywhere in your responses — not as punctuation, not as list markers, not as connectors. Instead of a dash use a comma, a full stop, or rephrase the sentence entirely. No bullet points in your replies. Acknowledge their previous answer in one brief natural phrase before asking the next question.
+Probe deeper when they mention something interesting — do not rush to the next topic if there is more to understand.
+Never suggest answers. Never make them feel audited. Keep every response under 60 words.
+If they mention more than three approval forums, probe each one for time cost and decision speed.
+If they mention a specific friction point, follow it before moving on.
+
+${wrapUp ? 'This is the final conversational exchange. Thank them warmly in one sentence and tell them their input will help build a better process for their whole team. End your message with [END].' : ''}`;
+}
+
+// ── API ──
+async function callClaude(system, messages) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system,
+      messages
+    })
+  });
+  if (!res.ok) throw new Error(res.status);
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+// ── REPORT ──
+async function generateReport(company) {
+  document.getElementById('reportLoading').style.display = 'block';
+  document.getElementById('reportContent').classList.remove('visible');
+  const sessions = getSessions(company);
+  document.getElementById('reportSessions').textContent =
+    sessions.length + ' session' + (sessions.length !== 1 ? 's' : '') + ' recorded';
+  const tabs = document.getElementById('sessionTabs');
+  tabs.innerHTML = '';
+  if (sessions.length > 1) {
+    const allTab = document.createElement('button');
+    allTab.className = 'session-tab active';
+    allTab.textContent = 'All sessions';
+    allTab.onclick = () => { renderSessions(sessions); setTab(allTab); };
+    tabs.appendChild(allTab);
+    sessions.forEach((s,i) => {
+      const t = document.createElement('button');
+      t.className = 'session-tab';
+      const d = new Date(s.timestamp);
+      t.textContent = s.fn + ' · ' + (d.getMonth()+1) + '/' + d.getDate();
+      t.onclick = () => { renderSessions([s]); setTab(t); };
+      tabs.appendChild(t);
+    });
+  }
+  await renderSessions(sessions);
+}
+
+function setTab(btn) {
+  document.querySelectorAll('.session-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function renderSessions(sessions) {
+  document.getElementById('reportLoading').style.display = 'block';
+  document.getElementById('reportContent').classList.remove('visible');
+
+  const combined = sessions.map((s,i) =>
+    'SESSION ' + (i+1) + ' (' + s.fn + ' · ' + s.seniority + '):\n' +
+    'MC Answers: ' + JSON.stringify(s.mcAnswers) + '\n' +
+    s.messages.filter(m => !m.content.startsWith('[START]'))
+      .map(m => (m.role==='assistant'?'Nova':s.fn) + ': ' + m.content).join('\n')
+  ).join('\n\n---\n\n');
+
+  const prompt = `You are a senior NPD strategy consultant at AIscent Co. Analyze these diagnostic sessions from ${sessions[0]?.company}.
+
+${combined}
+
+Return ONLY valid JSON with no markdown or code fences:
+{
+  "overview": "3 to 4 sentences on what these sessions reveal about NPD process health. Be specific to what was said.",
+  "painPoints": [
+    { "function": "function name", "text": "specific pain point from the conversation" }
+  ],
+  "approvalBottlenecks": "Describe the approval forum issues surfaced. Which forums create the most delay, how long decisions take, and whether direction changes after gates have passed. Be specific to what respondents said.",
+  "briefQuality": "Assess brief quality based on what was shared. Which of the six brief elements (claims, portfolio positioning, key ingredient, final look, target cost, feasibility) are most often missing or unclear. Be specific.",
+  "frictionPairs": [
+    { "pair": "Function A and Function B", "level": 70, "note": "High" }
+  ],
+  "recommendations": "3 to 4 specific prioritized actions. Reference stage gate and brief elements where relevant. Be concrete and actionable."
+}
+Max 5 painPoints. Only include frictionPairs actually mentioned. Level 0 to 100. If Marketing is not a respondent, note that brief quality assessment is one-sided and needs Marketing input.`;
+
+  try {
+    const raw = await callClaude(
+      'Return only valid JSON. No preamble. No markdown fences.',
+      [{role:'user',content:prompt}]
+    );
+    const data = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    renderReportData(data, sessions);
+  } catch(e) {
+    document.getElementById('reportLoading').innerHTML =
+      '<p style="color:var(--pink);padding:20px">Report generation issue. Sessions are saved.</p>';
+  }
+}
+
+function renderReportData(data, sessions) {
+  document.getElementById('reportLoading').style.display = 'none';
+  document.getElementById('reportContent').classList.add('visible');
+
+  // MC summary
+  const mc = document.getElementById('mcSummary');
+  mc.innerHTML = '';
+  sessions.forEach(s => {
+    if (!Object.keys(s.mcAnswers).length) return;
+    const row = document.createElement('div');
+    row.className = 'mc-summary-row';
+    row.innerHTML = '<div class="mc-summary-fn">' + s.fn + ' · ' + s.seniority + '</div>';
+    const badges = document.createElement('div');
+    badges.className = 'mc-badges';
+    Object.entries(s.mcAnswers).forEach(([k,v]) => {
+      const b = document.createElement('span');
+      b.className = 'mc-badge';
+      b.textContent = (k==='most_delays' ? 'Most delays: ' : 'Brief quality: ') + v;
+      badges.appendChild(b);
+    });
+    row.appendChild(badges);
+    mc.appendChild(row);
+  });
+  if (!mc.children.length) mc.innerHTML = '<p style="font-size:13px;color:var(--muted)">No quick answers recorded yet.</p>';
+
+  // Overview
+  document.getElementById('reportOverview').textContent = data.overview || '';
+
+  // Pain points
+  const pg = document.getElementById('painGrid');
+  pg.innerHTML = '';
+  (data.painPoints||[]).forEach(p => {
+    pg.innerHTML += '<div class="pain-card"><div class="pain-card-fn">' + p.function +
+      '</div><div class="pain-card-text">' + p.text + '</div></div>';
+  });
+
+  // Approval bottlenecks
+  document.getElementById('reportApprovals').textContent = data.approvalBottlenecks || '';
+
+  // Friction map
+  const fm = document.getElementById('frictionMap');
+  fm.innerHTML = '';
+  if (data.frictionPairs?.length) {
+    data.frictionPairs.forEach(f => {
+      const lvl = f.level>=70?'High':f.level>=40?'Medium':'Low';
+      fm.innerHTML += '<div class="friction-row"><div class="friction-pair">' + f.pair +
+        '</div><div class="friction-bar-wrap"><div class="friction-bar" style="width:0" data-w="' +
+        f.level + '%"></div></div><div class="friction-note">' + lvl + '</div></div>';
+    });
+    setTimeout(() => {
+      document.querySelectorAll('.friction-bar').forEach(b => b.style.width = b.dataset.w);
+    }, 200);
+  } else {
+    fm.innerHTML = '<p style="font-size:13px;color:var(--muted);padding:8px 0">Run more sessions across functions to build the friction map.</p>';
+  }
+
+  // Brief quality
+  document.getElementById('reportBrief').textContent = data.briefQuality || '';
+
+  // Recommendations
+  document.getElementById('reportRecs').textContent = data.recommendations || '';
+}
+
+// ── CONSULTANT TRIGGER ──
+let clicks = 0, timer;
+document.getElementById('consultantTrigger').addEventListener('click', () => {
+  clicks++;
+  clearTimeout(timer);
+  timer = setTimeout(() => { clicks = 0; }, 2000);
+  if (clicks >= 3) {
+    clicks = 0;
+    const company = document.getElementById('companyInput').value.trim() || S.company;
+    if (!company) { alert('Complete a session first or enter a company name on the welcome screen.'); return; }
+    document.getElementById('reportTitle').textContent = 'NPD Diagnostic — ' + company;
+    document.getElementById('reportMeta').textContent =
+      new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    showScreen('report');
+    generateReport(company);
+  }
+});
+
+function newSession() {
+  S = {company:'',fn:'',seniority:'',messages:[],qCount:0,maxQ:10,mcAnswers:{},sessionDone:false};
+  mcStep = 0;
+  document.getElementById('chatMessages').innerHTML = '';
+  document.getElementById('companyInput').value = '';
+  document.getElementById('functionSelect').value = '';
+  document.getElementById('senioritySelect').value = '';
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('progressFill').style.width = '0%';
+  showScreen('welcome');
+}
+</script>
+</body>
+</html>
