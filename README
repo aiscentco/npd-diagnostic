@@ -1,0 +1,31 @@
+# Nova · NPD Process Diagnostic
+### AIscent Co. · Beauty NPD Acceleration
+
+Nova is an AI-powered diagnostic interviewer built for AIscent Co. client engagements. She conducts confidential conversational sessions with key stakeholders across Marketing, R&D, Procurement, Packaging, Regulatory and Product Management to surface friction in the NPD process.
+
+## What this tool does
+
+Nova runs structured but conversational diagnostic interviews with 4 to 5 people per function at a client organization. Each session takes approximately 15 to 20 minutes. Responses are anonymous by name — only function and seniority level are recorded.
+
+At the end of each session, Nova surfaces two quick-answer questions and invites a final open reflection. All session data saves to the browser locally, tagged by company name.
+
+## How to use it
+
+1. Open the tool in a browser (Chrome or Safari recommended)
+2. Enter the client company name and select the respondent's function and seniority level
+3. The respondent completes the conversation with Nova
+4. Access the consultant summary by clicking "consultant view" in the bottom right corner three times
+
+## Consultant access
+
+The diagnostic report is never shown to respondents. To access it, click the small "consultant view" text in the bottom right corner of the screen three times. The report aggregates all sessions recorded for the same company name.
+
+## Important
+
+This tool requires a live browser environment to function. It will not work inside embedded previews. The Anthropic API is called directly from the browser during sessions.
+
+This tool is confidential and for AIscent Co. internal use only during client engagements.
+
+---
+
+**AIscent Co.** · xo@aiscent.co · lydia@aiscent.co · aiscent.co
