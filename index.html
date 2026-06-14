@@ -423,22 +423,76 @@ function checkReady() {
   document.getElementById('startBtn').disabled = !ok;
 }
 
-// ── STORAGE ──
+// ══════════════════════════════════════════════
+// DATA LAYER — the only place storage logic lives.
+// To migrate to Supabase later, rewrite ONLY the
+// inside of saveSession and getSessions. Nothing
+// else in Nova needs to change.
+// ══════════════════════════════════════════════
+
+// Paste your Google Apps Script Web app URL between the quotes.
+// Leave empty to use local browser storage (demo mode).
+const STORAGE_URL = '';
+
 function sKey(c) { return 'npd_' + c.toLowerCase().replace(/\s+/g,'_'); }
-function saveSession(d) {
-  const k = sKey(d.company);
-  let all = [];
-  try { all = JSON.parse(localStorage.getItem(k)||'[]'); } catch(e){}
-  all.push(d);
-  localStorage.setItem(k, JSON.stringify(all));
+
+// SAVE one session. Writes to Google Sheets if configured, else localStorage.
+async function saveSession(d) {
+  // Always keep a local copy as backup
+  try {
+    const k = sKey(d.company);
+    const all = JSON.parse(localStorage.getItem(k)||'[]');
+    all.push(d);
+    localStorage.setItem(k, JSON.stringify(all));
+  } catch(e){}
+
+  // Write to Google Sheets if a URL is set
+  if (STORAGE_URL) {
+    try {
+      await fetch(STORAGE_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(d)
+      });
+    } catch(e) {
+      console.warn('Cloud save failed, kept local copy.', e);
+    }
+  }
 }
-function getSessions(c) {
-  try { return JSON.parse(localStorage.getItem(sKey(c))||'[]'); } catch(e){ return []; }
+
+// READ all sessions for a company. Reads Google Sheets if configured, else localStorage.
+function getSessions(company) {
+  // localStorage path (demo mode)
+  if (!STORAGE_URL) {
+    try { return Promise.resolve(JSON.parse(localStorage.getItem(sKey(company))||'[]')); }
+    catch(e){ return Promise.resolve([]); }
+  }
+  // Google Sheets path via JSONP
+  return new Promise(resolve => {
+    const cb = 'novaCb_' + Date.now();
+    const script = document.createElement('script');
+    let done = false;
+    window[cb] = (res) => {
+      done = true;
+      delete window[cb];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      resolve((res && res.sessions) ? res.sessions : []);
+    };
+    script.onerror = () => {
+      if (!done) { delete window[cb]; resolve([]); }
+    };
+    script.src = STORAGE_URL + '?company=' + encodeURIComponent(company) + '&callback=' + cb;
+    document.body.appendChild(script);
+    // Safety timeout
+    setTimeout(() => { if (!done) { delete window[cb]; resolve([]); } }, 8000);
+  });
 }
+
 function clearData() {
-  if(confirm('Clear all data for ' + S.company + '?')) {
+  if(confirm('Clear LOCAL data for ' + S.company + '? (This does not affect Google Sheets)')) {
     localStorage.removeItem(sKey(S.company));
-    alert('Cleared.');
+    alert('Local data cleared.');
   }
 }
 
@@ -763,7 +817,7 @@ async function callClaude(system, messages) {
 async function generateReport(company) {
   document.getElementById('reportLoading').style.display = 'block';
   document.getElementById('reportContent').classList.remove('visible');
-  const sessions = getSessions(company);
+  const sessions = await getSessions(company);
   document.getElementById('reportSessions').textContent =
     sessions.length + ' session' + (sessions.length !== 1 ? 's' : '') + ' recorded';
   const tabs = document.getElementById('sessionTabs');
