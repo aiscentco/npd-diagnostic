@@ -798,7 +798,7 @@ ${wrapUp ? 'This is the final conversational exchange. Thank them warmly in one 
 
 // ── API ──
 async function callClaude(system, messages) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
