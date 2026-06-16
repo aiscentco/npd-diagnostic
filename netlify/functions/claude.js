@@ -22,18 +22,24 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify(body)
     });
-    const data = await response.json();
+
+    const text = await response.text();
+
     return {
-      statusCode: 200,
+      statusCode: response.status,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify(data)
+      body: text
     };
   } catch (err) {
     return {
       statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
       body: JSON.stringify({ error: String(err) })
     };
   }
